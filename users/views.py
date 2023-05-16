@@ -3,6 +3,8 @@ from rest_framework.permissions import AllowAny
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
+from django.core.mail import send_mail
+
 from .models import User
 #from .permissions import IsUserOrReadOnly
 from .serializers import CreateUserSerializer, UserSerializer, PasswordResetSerializer
@@ -34,11 +36,38 @@ class UserViewSet(viewsets.ModelViewSet):
         return Response(status=status.HTTP_204_NO_CONTENT)
 
 
-class UserCreateViewSet(mixins.CreateModelMixin,
-                        viewsets.GenericViewSet):
+class UserCreateViewSet(viewsets.ModelViewSet):
     """
     Creates user accounts
     """
     queryset = User.objects.all()
     serializer_class = CreateUserSerializer
     permission_classes = (AllowAny,)
+
+    def get_serializer_class(self):
+        if self.action == "create":
+            return CreateUserSerializer
+
+        return self.serializer_class
+    
+    
+
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        # email=serializer.data["email"]
+        upass = User.objects.make_random_password()
+        serializer.save(password=upass)
+        headers = self.get_success_headers(serializer.data)
+        # email=serializer.data["email"]
+        # send_mail(
+        #     subject=f'Привет! {email}',
+        #     message=f'{email}, {serializer.data["password"]}',
+        #     from_email='GLOBUS',
+        #     recipient_list=[email,]
+        # )
+        return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
+    
+
+        

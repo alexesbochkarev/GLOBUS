@@ -41,6 +41,7 @@ class Role(models.Model):
     surname = models.CharField(_("first name"), max_length=150, blank=True)
     name = models.CharField(_("last name"), max_length=150, blank=True)
     patronymic = models.CharField(_("patronymic"), max_length=150, blank=True)
+    position = models.CharField(_("position"), max_length=150, blank=True)
     pic = models.ImageField(
         upload_to='user_pic', 
         height_field=None, width_field=None, max_length=100, blank=True)

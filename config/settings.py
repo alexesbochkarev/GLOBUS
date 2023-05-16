@@ -31,6 +31,7 @@ INSTALLED_APPS = [
     "corsheaders",
     'drf_yasg',
     'djoser',
+    'django_celery_beat',
     # my app
     'users',
 ]

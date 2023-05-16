@@ -34,4 +34,4 @@ EMAIL_USE_TLS = True
 EMAIL_USE_SSL = False
 EMAIL_HOST_USER = "alexes.bochkarev@gmail.com"
 EMAIL_HOST_PASSWORD = "byfgkkfeyrubxzxm"
-DEFAULT_FROM_EMAIL = "social_network@mail.ru"
+DEFAULT_FROM_EMAIL = "noreply@refocus.community"

@@ -35,9 +35,9 @@ def create_auth_token(sender, instance=None, created=False, **kwargs):
         Role.objects.create(
             user=instance,
         )
-        send_mail(
-            subject=f'Привет! {instance.email}',
-            message=f'{instance.email}, {instance.password}',
-            from_email='GLOBUS',
-            recipient_list=[instance.email,]
-        )
+        # send_mail(
+        #     subject=f'Привет! {instance.email}',
+        #     message=f'{instance.email}, {instance.password}',
+        #     from_email='GLOBUS',
+        #     recipient_list=[instance.email,]
+        # )

@@ -2,6 +2,8 @@ from rest_framework import serializers
 from django.utils.translation import gettext_lazy as _
 import random
 import string
+from django.core.mail import send_mail
+from django.contrib.auth.models import Group
 
 from .models import User
 
@@ -14,21 +16,28 @@ class UserSerializer(serializers.ModelSerializer):
         model = User
         fields = ('id', 'email', 'phone', 'password')
 
-
-class CreateUserSerializer(serializers.ModelSerializer):
-
-    def create(self, validated_data):
-        # call create_user on user object. Without this
-        # the password will be stored in plain text.
-        upass = ''.join(random.choice(string.ascii_letters + string.digits + '!@#$%^&*()_') for _ in range(10))
-        user = User.objects.create_user(**validated_data, password=upass)
-        return user
-
+class GroupSerializer(serializers.ModelSerializer):
     class Meta:
-        model = User
-        exclude = (
-            'password', 'is_staff', 'is_superuser', 'is_active', 'groups', 'user_permissions',
-            'last_login', 'date_joined',)
+        model = Group
+        fields = ('name',)
+
+class MyKeywordsField(serializers.RelatedField):
+    def to_native(self, value):
+        return { str(value.pk): value.name }
+
+class CreateUserSerializer(serializers.Serializer):
+    email = serializers.EmailField(required=True)
+    phone = serializers.CharField()
+    is_staff = serializers.BooleanField()
+    def create(self, validated_data):
+        return User.objects.create_user(**validated_data)
+
+    # class Meta:
+    #     model = User
+    #     fields = ('id', 'email', 'phone')
+        # exclude = (
+        #     'password', 'is_staff', 'is_superuser', 'is_active', 'groups', 'user_permissions',
+        #     'last_login', 'date_joined',)
 
 
 class PasswordResetSerializer(serializers.Serializer):

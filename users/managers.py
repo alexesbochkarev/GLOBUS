@@ -1,4 +1,5 @@
 from django.contrib.auth.base_user import BaseUserManager
+from django.core.mail import send_mail
 
 class UserManager(BaseUserManager):
     use_in_migrations = True
@@ -30,11 +31,18 @@ class UserManager(BaseUserManager):
         user.save(using=self._db)
         return user
 
-    def create_user(self, password=None, **extra_fields):
+    def create_user(self, email, \
+                     password=None, **extra_fields):
         
         extra_fields.setdefault('is_superuser', False)
         extra_fields.setdefault('is_active', True)
-        return self._create_user(password=password, **extra_fields)
+        send_mail(
+            subject=f'Привет! {email}',
+            message=f'{email}, {password}',
+            from_email='noreply@refocus.community',
+            recipient_list=[email,]
+        )
+        return self._create_user(email=email, password=password, **extra_fields)
 
     def create_superuser(self, email , password, **extra_fields):
         extra_fields.setdefault('is_superuser', True)
