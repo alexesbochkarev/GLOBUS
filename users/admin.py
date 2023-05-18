@@ -25,7 +25,7 @@ csrf_protect_m = method_decorator(csrf_protect)
 sensitive_post_parameters_m = method_decorator(sensitive_post_parameters())
 
 from django.contrib.auth import get_user_model
-from .models import Role
+from .models import Staff
 
 User = get_user_model()
 
@@ -56,7 +56,7 @@ class UserAdmin(admin.ModelAdmin):
             None,
             {
                 "classes": ("wide",),
-                "fields": ("email", "phone", "password1", "password2"),
+                "fields": ("email", "phone", "roles", "password1", "password2"),
             },
         ),
     )
@@ -221,4 +221,4 @@ class UserAdmin(admin.ModelAdmin):
 
 
 admin.site.register(User, UserAdmin)
-admin.site.register(Role)
+admin.site.register(Staff)

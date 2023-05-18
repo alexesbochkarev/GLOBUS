@@ -142,6 +142,7 @@ dmypy.json
 
 # Local History for Visual Studio Code
 .history/
+media/
 
 .mypy_cache
 

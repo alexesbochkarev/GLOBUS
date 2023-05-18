@@ -6,8 +6,9 @@ from rest_framework.response import Response
 from django.core.mail import send_mail
 
 from .models import User
+from .models import Staff
 #from .permissions import IsUserOrReadOnly
-from .serializers import CreateUserSerializer, UserSerializer, PasswordResetSerializer
+from .serializers import CreateUserSerializer, UserSerializer, PasswordResetSerializer, RoleCreateSerializer
 
 
 class UserViewSet(viewsets.ModelViewSet):
@@ -47,7 +48,6 @@ class UserCreateViewSet(viewsets.ModelViewSet):
     def get_serializer_class(self):
         if self.action == "create":
             return CreateUserSerializer
-
         return self.serializer_class
     
     
@@ -70,4 +70,15 @@ class UserCreateViewSet(viewsets.ModelViewSet):
         return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
     
 
-        
+class RoleCreateViewSet(viewsets.ModelViewSet):
+    """
+    Creates user accounts
+    """
+    queryset = Staff.objects.all()
+    serializer_class = RoleCreateSerializer
+    permission_classes = (AllowAny,)
+
+    def get_serializer_class(self):
+        if self.action == "create":
+            return RoleCreateSerializer
+        return self.serializer_class
