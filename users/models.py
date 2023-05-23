@@ -21,9 +21,11 @@ class User(AbstractBaseUser, PermissionsMixin):
     email = models.EmailField(_('email address'), unique=True)
     phone = models.CharField(_('phone number'), max_length=30, unique=True)
     roles = models.CharField(max_length=3, choices=Role.choices, null=True, blank=True)
-    pic = models.ImageField(
-        upload_to='user_pic', 
-        height_field=None, width_field=None, max_length=100, blank=True)
+    pic = models.ImageField(upload_to='user_pic', 
+                            height_field=None,
+                            width_field=None, 
+                            null=True, blank=True
+                        )
     is_active = models.BooleanField(_('active'), default=True)
     is_staff = models.BooleanField(_('staff'), default=False)
     visibleforchat = models.BooleanField(default=False)
@@ -45,7 +47,7 @@ class User(AbstractBaseUser, PermissionsMixin):
 
 class Staff(models.Model):
     user = models.OneToOneField(
-        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='user'
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='staff'
     )
     surname = models.CharField(_("first name"), max_length=150, blank=True)
     name = models.CharField(_("last name"), max_length=150, blank=True)
