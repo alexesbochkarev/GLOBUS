@@ -14,7 +14,7 @@ DATABASES = {
         'PORT': '',
         'NAME': 'GLOBUS',
         'USER': 'GLOBUS_user',
-        'PASSWORD': 'ee6c43f9',
+        'PASSWORD': '*',
     },
 }
 
