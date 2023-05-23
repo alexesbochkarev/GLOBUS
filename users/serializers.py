@@ -17,6 +17,7 @@ class CreateUserSerializer(serializers.Serializer):
     phone = serializers.CharField()
     roles = serializers.ChoiceField(choices=User.Role.choices)
     pic = serializers.ImageField()
+    visibleforchat = serializers.BooleanField()
     staff = ProfileCreateSerializer()
 
 

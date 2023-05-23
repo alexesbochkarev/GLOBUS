@@ -24,16 +24,19 @@ INSTALLED_APPS = [
     'django.contrib.contenttypes',
     'django.contrib.sessions',
     'django.contrib.messages',
+    'daphne',
     'django.contrib.staticfiles',
     # services app
     'rest_framework',
     'rest_framework.authtoken',
     "corsheaders",
+    'channels',
     'drf_yasg',
     'djoser',
     'django_celery_beat',
     # my app
     'users',
+    'apps.chats',
 ]
 
 MIDDLEWARE = [
@@ -71,6 +74,7 @@ TEMPLATES = [
 
 
 WSGI_APPLICATION = 'config.wsgi.application'
+ASGI_APPLICATION = "config.asgi.application"
 
 
 # Password validation
