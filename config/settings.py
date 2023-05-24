@@ -34,6 +34,8 @@ INSTALLED_APPS = [
     'drf_yasg',
     'djoser',
     'django_celery_beat',
+    # Other apps…
+    "phonenumber_field",
     # my app
     'users',
     'apps.chats',
@@ -52,7 +54,7 @@ MIDDLEWARE = [
 
 ROOT_URLCONF = 'config.urls'
 
-AUTH_USER_MODEL = 'users.User'
+AUTH_USER_MODEL = 'users.AbstractCustomUser'
 #AUTHENTICATION_BACKENDS = ('users.backends.AuthBackend',)
 
 TEMPLATES = [
