@@ -1,47 +1,53 @@
 from rest_framework import serializers
 from django.contrib.auth import get_user_model
-# from model_utils.models import TimeStampedModel, SoftDeletableModel
 from .models import Room, Message
+
 
 User = get_user_model()
 
-# class UserSerializer(serializers.ModelSerializer):
-#     class Meta:
-#         model = User
-#         exclude = ["password"]
 
 class UserSerializer(serializers.ModelSerializer):
-
     class Meta:
         model = User
-        fields = ["id", "username", "email", "phone",]
+        fields = ["id", "email", "name", "surname"]
+        read_only_fields = ("name", "surname")
 
 
+class AuthorSerializer(serializers.Serializer):
+    id = serializers.ReadOnlyField()
+    role = serializers.StringRelatedField()
+            
 
 class MessageSerializer(serializers.ModelSerializer):
-    timestamp_formatted = serializers.SerializerMethodField()
-    author = UserSerializer()
-
+    author = AuthorSerializer()
     class Meta:
         model = Message
-        exclude = []
-        depth = 1
-
-    def get_timestamp_formatted(self, obj: Message):
-        return obj.timestamp.strftime("%d-%m-%Y %H:%M:%S")
+        exclude = ('room',)
 
 
-class RoomSerializer(serializers.ModelSerializer):
+class RoomListSerializer(serializers.ModelSerializer):
+    user1 = UserSerializer()
+    user2 = UserSerializer()
     last_message = serializers.SerializerMethodField()
-    messages = MessageSerializer(many=True, read_only=True)
 
     class Meta:
         model = Room
-        fields = ["pk", "user1", "messages", "user2", "last_message"]
-        depth = 1
-        read_only_fields = ["messages", "last_message"]
+        fields = ['user1', 'user2', 'last_message']
 
-    def get_last_message(self, obj: Room):
-        return MessageSerializer(obj.messages.order_by('timestamp').last()).data
+    def get_last_message(self, instance):
+        message = instance.messages.first()
+        if message:
+            return MessageSerializer(instance=message).data
+        else:
+            return None
 
 
+class RoomSerializer(serializers.ModelSerializer):
+    user1 = UserSerializer()
+    user2 = UserSerializer()
+    messages = MessageSerializer(read_only=True ,many=True)
+
+    class Meta:
+        model = Room
+        fields = ['user1', 'user2', 'messages']
+        read_only_fields = ('user1', 'user2', 'messages')

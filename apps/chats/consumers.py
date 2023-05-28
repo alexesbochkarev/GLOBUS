@@ -1,100 +1,98 @@
+import base64
 import json
+import secrets
 
-from asgiref.sync import sync_to_async
-from channels.db import database_sync_to_async
-from djangochannelsrestframework.generics import GenericAsyncAPIConsumer
-from djangochannelsrestframework import mixins
-from djangochannelsrestframework.observer.generics import (ObserverModelInstanceMixin, action)
-from djangochannelsrestframework.observer import model_observer
+from asgiref.sync import async_to_sync
+from channels.generic.websocket import WebsocketConsumer
+from django.core.files.base import ContentFile
 
-from .models import Room, Message
-from django.contrib.auth.models import User
-from .serializers import MessageSerializer, RoomSerializer, UserSerializer
+from .models import Message, Room
+from .serializers import MessageSerializer
 
 
-class RoomConsumer(ObserverModelInstanceMixin, GenericAsyncAPIConsumer):
-    queryset = Room.objects.all()
-    serializer_class = RoomSerializer
-    lookup_field = "pk"
+class ChatConsumer(WebsocketConsumer):
+    def connect(self):
+        print("here")
+        self.room_name = self.scope["url_route"]["kwargs"]["room_name"]
+        self.room_group_name = f"chat_{self.room_name}"
 
-    async def disconnect(self, code):
-        if hasattr(self, "room_subscribe"):
-            await self.remove_user_from_room(self.room_subscribe)
-            await self.notify_users()
-        await super().disconnect(code)
+        # Join room group
+        async_to_sync(self.channel_layer.group_add)(
+            self.room_group_name, self.channel_name
+        )
+        print("here2")
+        self.accept()
+        print("here3")
 
-    @action()
-    async def join_room(self, pk, **kwargs):
-        self.room_subscribe = pk
-        await self.add_user_to_room(pk)
-        await self.notify_users()
-
-    @action()
-    async def leave_room(self, pk, **kwargs):
-        await self.remove_user_from_room(pk)
-
-    @action()
-    async def create_message(self, message, **kwargs):
-        room: Room = await self.get_room(pk=self.room_subscribe)
-        await database_sync_to_async(Message.objects.create)(
-            room=room,
-            user=self.scope["user"],
-            text=message
+    def disconnect(self, close_code):
+        # Leave room group
+        async_to_sync(self.channel_layer.group_discard)(
+            self.room_group_name, self.channel_name
         )
 
-    @action()
-    async def subscribe_to_messages_in_room(self, pk, **kwargs):
-        await self.message_activity.subscribe(room=pk)
+    # Receive message from WebSocket
+    def receive(self, text_data=None, bytes_data=None):
+        # parse the json data into dictionary object
+        text_data_json = json.loads(text_data)
 
-    @model_observer(Message)
-    async def message_activity(self, message, observer=None, **kwargs):
-        await self.send_json(message)
+        # unpack the dictionary into the necessary parts
+        message, attachment = (
+            text_data_json["message"],
+            text_data_json.get("attachment"),
+        )
 
-    @message_activity.groups_for_signal
-    def message_activity(self, instance: Message, **kwargs):
-        yield f'room__{instance.room_id}'
-        yield f'pk__{instance.pk}'
+        room = Room.objects.get(id=int(self.room_name))
+        author = self.scope["user"]
 
-    @message_activity.groups_for_consumer
-    def message_activity(self, room=None, **kwargs):
-        if room is not None:
-            yield f'room__{room}'
+        # Attachment
+        if attachment:
+            file_str, file_ext = attachment["data"], attachment["format"]
 
-    @message_activity.serializer
-    def message_activity(self, instance: Message, action, **kwargs):
-        return dict(data=MessageSerializer(instance).data, action=action.value, pk=instance.pk)
-
-    async def notify_users(self):
-        room: Room = await self.get_room(self.room_subscribe)
-        for group in self.groups:
-            await self.channel_layer.group_send(
-                group,
+            file_data = ContentFile(
+                base64.b64decode(file_str), name=f"{secrets.token_hex(8)}.{file_ext}"
+            )
+            _message = Message.objects.create(
+                author=author,
+                attachment=file_data,
+                text=message,
+                room=room,
+            )
+        else:
+            _message = Message.objects.create(
+                author=author,
+                text=message,
+                room=room,
+            )
+        # Send message to room group
+        chat_type = {"type": "chat_message"}
+        message_serializer = (dict(MessageSerializer(instance=_message).data))
+        return_dict = {**chat_type, **message_serializer}
+        if _message.attachment:
+            async_to_sync(self.channel_layer.group_send)(
+                self.room_group_name,
                 {
-                    'type': 'update_users',
-                    'usuarios': await self.current_users(room)
-                }
+                    "type": "chat_message",
+                    "message": message,
+                    "sender": author,
+                    "attachment": _message.attachment.url,
+                    "time": str(_message.timestamp.strftime("%d.%m.%Y %H:%M")),
+                },
+            )
+        else:
+            async_to_sync(self.channel_layer.group_send)(
+                self.room_group_name,
+                return_dict,
             )
 
-    async def update_users(self, event: dict):
-        await self.send(text_data=json.dumps({'usuarios': event["usuarios"]}))
+    # Receive message from room group
+    def chat_message(self, event):
+        dict_to_be_sent = event.copy()
+        dict_to_be_sent.pop("type")
 
-    @database_sync_to_async
-    def get_room(self, pk: int) -> Room:
-        return Room.objects.get(pk=pk)
-
-    @database_sync_to_async
-    def current_users(self, room: Room):
-        return [UserSerializer(user).data for user in room.user2.all()]
-
-    @database_sync_to_async
-    def remove_user_from_room(self, room):
-        user: User = self.scope["user"]
-        user.recieved_chats.remove(room)
-
-    @database_sync_to_async
-    def add_user_to_room(self, pk):
-        user: User = self.scope["user"]
-        if not user.recieved_chats.filter(pk=self.room_subscribe).exists():
-            user.recieved_chats.add(Room.objects.get(pk=pk))
-
+        # Send message to WebSocket
+        self.send(
+                text_data=json.dumps(
+                    dict_to_be_sent
+                )
+            )
 
