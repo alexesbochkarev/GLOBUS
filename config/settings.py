@@ -31,11 +31,12 @@ INSTALLED_APPS = [
     'rest_framework.authtoken',
     "corsheaders",
     'channels',
-    'drf_yasg',
     'djoser',
     'django_celery_beat',
     # Other apps…
     "phonenumber_field",
+    "sequences.apps.SequencesConfig",
+    "drf_yasg",
     # my app
     'users',
     'apps.chats',
@@ -54,7 +55,7 @@ MIDDLEWARE = [
 
 ROOT_URLCONF = 'config.urls'
 
-AUTH_USER_MODEL = 'users.AbstractCustomUser'
+AUTH_USER_MODEL = 'users.User'
 #AUTHENTICATION_BACKENDS = ('users.backends.AuthBackend',)
 
 TEMPLATES = [
@@ -160,6 +161,16 @@ CELERY_ACCEPT_CONTENT = ['application/json']
 CELERY_RESULT_SERIALIZER = 'json'
 CELERY_TASK_SERIALIZER = 'json'
 CELERY_TIMEZONE = 'Europe/Moscow'
+
+
+CHANNEL_LAYERS = {
+    "default": {
+        "BACKEND": "channels_redis.core.RedisChannelLayer",
+        "CONFIG": {
+            "hosts": [("localhost", 6379)],
+        },
+    },
+}
 
 from .production import *
 from .local import *

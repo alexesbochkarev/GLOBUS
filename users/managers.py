@@ -1,6 +1,12 @@
+from django.db import models
 from django.contrib.auth.base_user import BaseUserManager
-from django.core.mail import send_mail
 
+
+class MemberManager(models.Manager):
+    def get_queryset(self):
+        return super().get_queryset().filter(role='1')
+    
+    
 class UserManager(BaseUserManager):
     use_in_migrations = True
 

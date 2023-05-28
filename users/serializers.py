@@ -1,50 +1,58 @@
-# from rest_framework import serializers
-# from django.utils.translation import gettext_lazy as _
-# from django.core.mail import send_mail
-# from django.contrib.auth.models import Group
+import base64
 
-# from .models import User, Staff
-
-
-# class ProfileCreateSerializer(serializers.Serializer):
-#     surname = serializers.CharField()
-#     name = serializers.CharField()
-#     position = serializers.CharField()
+from django.db import models
+from django.core.files.base import ContentFile
+from django.utils.translation import gettext_lazy as _
+from rest_framework import serializers
+from phonenumber_field.serializerfields import PhoneNumberField
 
 
-# class CreateUserSerializer(serializers.Serializer):
-#     email = serializers.EmailField(required=True)
-#     phone = serializers.CharField()
-#     roles = serializers.ChoiceField(choices=User.Role.choices)
-#     pic = serializers.ImageField()
-#     visibleforchat = serializers.BooleanField()
-#     staff = ProfileCreateSerializer()
+from .models import User
 
 
-#     def create(self, validated_data):
-#         staff_data = validated_data.pop('staff')
-#         user = User.objects.create_user(**validated_data)
-#         Staff.objects.create(user=user, **staff_data)
-#         return user
+class Base64ImageField(serializers.ImageField):
+
+    def to_internal_value(self, data):
+        if isinstance(data, str) and data.startswith('data:image'):
+            format, imgstr = data.split(';base64,')
+            ext = format.split('/')[-1]
+            data = ContentFile(base64.b64decode(imgstr), name='temp.' + ext)
+        return super().to_internal_value(data)
+    
+    
+class Role(models.TextChoices):
+     # Actual value ↓      # ↓ Displayed on Django Admin  
+        # 1 == member default value
+        OBSERVER = '2', _('Observer')
+        MANAGER  = '3', _('Manager')
+        ADMIN    = '4', _('Administrator')
 
 
-# class UserListSerializer(serializers.Serializer):
-#     email = serializers.EmailField(required=True)
-#     phone = serializers.CharField()
-#     visibleforchat = serializers.BooleanField()
-#     roles = serializers.ChoiceField(choices=User.Role.choices)
-#     pic = serializers.ImageField()
+class CreateUserSerializer(serializers.ModelSerializer):
+    """
+    Создание пользователя админки согласно ТЗ стр.93
+
+    Пароль пользователя автоматичски генерируется во views.py 
+    и отправляется на почту пользователя в письме-приглашении
+    """
+    id = serializers.ReadOnlyField()
+    email = serializers.EmailField()
+    phone = PhoneNumberField(region="RU")
+    role = serializers.ChoiceField(choices=Role.choices)
+    avatar = Base64ImageField(required=False, allow_null=True)
+    surname = serializers.CharField(required=False)
+    name = serializers.CharField(required=False)
+    patronymic = serializers.CharField(required=False)
+    position = serializers.CharField(required=False)
+    visibleforchat = serializers.BooleanField()
 
 
-# class StaffCreateSerializer(serializers.Serializer):
-#     user = UserListSerializer()
-#     surname = serializers.CharField()
-#     name = serializers.CharField()
-#     position = serializers.CharField()
+    def create(self, validated_data):
+        user = User.objects.create_user(**validated_data)
+        return user
 
-#     def create(self, validated_data):
-#         user_data = validated_data.pop('user')
-#         password = User.objects.make_random_password()
-#         user = User.objects.create_user(password=password, **user_data)
-#         role =  Staff.objects.create(user=user, **validated_data)
-#         return role
+    class Meta:
+        model = User
+        fields = ["id", "email", "phone", "role", "avatar", "surname", "name", "patronymic", "position", "visibleforchat"]
+        
+
